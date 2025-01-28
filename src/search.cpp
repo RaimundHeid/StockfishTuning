@@ -281,8 +281,9 @@ void Search::Worker::iterative_deepening() {
 
     for (int i = 0; i <= MAX_PLY + 2; ++i)
     {
-        (ss + i)->ply       = i;
-        (ss + i)->reduction = 0;
+        (ss + i)->ply        = i;
+        (ss + i)->reduction  = 0;
+        (ss + i)->extensions = 0;
     }
 
     ss->pv = pv;
@@ -1111,9 +1112,12 @@ moves_loop:  // When in check, search starts here
                     int doubleMargin = 267 * PvNode - 181 * !ttCapture - corrValAdj1;
                     int tripleMargin =
                       96 + 282 * PvNode - 250 * !ttCapture + 103 * ss->ttPv - corrValAdj2;
+                    const int maxExtension =
+                      std::max(0, 2 * thisThread->rootDepth - (ss - 1)->extensions);
 
                     extension = 1 + (value < singularBeta - doubleMargin)
                               + (value < singularBeta - tripleMargin);
+                    extension = std::min(extension, maxExtension);
 
                     depth++;
                 }
@@ -1151,6 +1155,7 @@ moves_loop:  // When in check, search starts here
 
         // Add extension to new depth
         newDepth += extension;
+        ss->extensions = (ss - 1)->extensions + extension;
 
         // Update the current move (this must be done after singular extension search)
         ss->currentMove = move;
